@@ -1,6 +1,9 @@
 package pkg
 
 import (
+	"os"
+	"path/filepath"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
@@ -11,10 +14,14 @@ import (
 	"github.com/asha/vempala-kids/internal/streak"
 )
 
-func Connect() (*gorm.DB, error) {
+
+func Connect(dbPath string) (*gorm.DB, error) {
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
+		return nil, err
+	}
 
 	db, err := gorm.Open(
-		sqlite.Open("data/vempala.db"),
+		sqlite.Open(dbPath),
 		&gorm.Config{},
 	)
 
@@ -25,6 +32,7 @@ func Connect() (*gorm.DB, error) {
 	err = db.AutoMigrate(
 		&child.Child{},
 		&task.Task{},
+		&task.Assignment{},
 		&points.History{},
 		&reward.Reward{},
 		&reward.Redemption{},

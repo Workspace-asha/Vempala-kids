@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vempala Kids | Leaderboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="text-slate-900">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <header class="glass-card rounded-3xl p-6 md:p-8 mb-6 fade-in">
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-[0.35em] text-blue-500 font-semibold">Family rewards hub</p>
+                <h1 class="text-4xl md:text-6xl font-black mt-3 leading-tight">Leaderboard</h1>
+                <p class="mt-4 text-slate-600 max-w-2xl text-lg">
+                    A live ranking of responsibility points. Refreshes instantly after every task, award, or redemption.
+                </p>
+            </div>
+            <div class="flex gap-3 flex-wrap">
+                <a href="/" class="nav-link px-4 py-2 rounded-full font-semibold bg-white/70">Dashboard</a>
+                <a href="/leaderboard" class="nav-link active px-4 py-2 rounded-full font-semibold">Leaderboard</a>
+                <a href="/rewards" class="nav-link px-4 py-2 rounded-full font-semibold bg-white/70">Rewards</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="glass-card rounded-3xl p-6 fade-in">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+                <h2 class="text-2xl font-bold">Top movers</h2>
+                <p class="text-slate-500 mt-1">This leaderboard is powered by the live API.</p>
+            </div>
+            <button type="button" onclick="loadLeaderboard()" class="btn-pill rounded-full bg-slate-900 text-white px-4 py-2 font-semibold">Refresh</button>
+        </div>
+
+        <div id="leaderboard-grid" class="grid gap-4 mt-6"></div>
+    </section>
+</div>
+
+<script>
+async function loadLeaderboard() {
+    const response = await fetch('/api/v1/leaderboard');
+    const children = await response.json();
+    const grid = document.getElementById('leaderboard-grid');
+
+    if (!children.length) {
+        grid.innerHTML = '<div class="rounded-2xl bg-white border border-slate-200 p-4 text-slate-500">No children yet.</div>';
+        return;
+    }
+
+    grid.innerHTML = children.map((child, index) => `
+        <article class="panel rounded-3xl bg-white border border-slate-200 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="h-14 w-14 rounded-2xl badge-soft flex items-center justify-center font-black text-xl">${index + 1}</div>
+                <div>
+                    <h3 class="text-xl font-bold">${child.Name}</h3>
+                    <p class="text-slate-500">Age ${child.Age}</p>
+                </div>
+            </div>
+            <div class="rounded-full badge-soft px-4 py-2 font-bold text-slate-800">⭐ ${child.TotalPoints} points</div>
+        </article>
+    `).join('');
+}
+
+loadLeaderboard();
+</script>
+</body>
+</html>

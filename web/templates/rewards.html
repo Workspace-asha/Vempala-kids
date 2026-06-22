@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vempala Kids | Rewards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="text-slate-900">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <header class="glass-card rounded-3xl p-6 md:p-8 mb-6 fade-in">
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-[0.35em] text-blue-500 font-semibold">Family rewards hub</p>
+                <h1 class="text-4xl md:text-6xl font-black mt-3 leading-tight">Rewards</h1>
+                <p class="mt-4 text-slate-600 max-w-2xl text-lg">
+                    Browse active rewards, redeem them quickly, and keep the motivation loop moving.
+                </p>
+            </div>
+            <div class="flex gap-3 flex-wrap">
+                <a href="/" class="nav-link px-4 py-2 rounded-full font-semibold bg-white/70">Dashboard</a>
+                <a href="/leaderboard" class="nav-link px-4 py-2 rounded-full font-semibold bg-white/70">Leaderboard</a>
+                <a href="/rewards" class="nav-link active px-4 py-2 rounded-full font-semibold">Rewards</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <section class="glass-card rounded-3xl p-6 fade-in">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                    <h2 class="text-2xl font-bold">Reward catalog</h2>
+                    <p class="text-slate-500 mt-1">Choose a reward and redeem it in one tap.</p>
+                </div>
+                <button type="button" onclick="loadRewards()" class="btn-pill rounded-full bg-slate-900 text-white px-4 py-2 font-semibold">Refresh</button>
+            </div>
+
+            <div id="reward-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6"></div>
+        </section>
+
+        <aside class="space-y-6">
+            <section class="glass-card rounded-3xl p-6 fade-in">
+                <h2 class="text-2xl font-bold">Quick redeem</h2>
+                <p class="text-slate-500 mt-1">Select a child and reward to redeem directly.</p>
+                <form class="mt-5 space-y-3" onsubmit="redeemSelected(event)">
+                    <select id="redeem-child" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3">
+                        <option value="">Select child</option>
+                    </select>
+                    <select id="redeem-reward" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3">
+                        <option value="">Select reward</option>
+                    </select>
+                    <button class="btn-pill w-full rounded-2xl bg-violet-600 text-white px-4 py-3 font-semibold">Redeem reward</button>
+                </form>
+            </section>
+
+            <section class="glass-card rounded-3xl p-6 fade-in">
+                <h2 class="text-2xl font-bold">How it works</h2>
+                <ul class="mt-4 space-y-3 text-slate-600">
+                    <li>1. Complete tasks or award points from the dashboard.</li>
+                    <li>2. Save up for a reward that feels exciting.</li>
+                    <li>3. Redeem and keep the momentum going.</li>
+                </ul>
+            </section>
+        </aside>
+    </main>
+</div>
+
+<script>
+async function requestJSON(url, options = {}) {
+    const response = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+    });
+
+    if (!response.ok) {
+        throw new Error(await response.text() || 'Request failed');
+    }
+
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
+}
+
+async function loadChildren() {
+    const children = await requestJSON('/api/v1/children');
+    const select = document.getElementById('redeem-child');
+    select.innerHTML = '<option value="">Select child</option>' + children.map((child) => `<option value="${child.ID}">${child.Name}</option>`).join('');
+}
+
+async function loadRewards() {
+    const rewards = await requestJSON('/api/v1/rewards');
+    const select = document.getElementById('redeem-reward');
+    select.innerHTML = '<option value="">Select reward</option>' + rewards.map((reward) => `<option value="${reward.ID}">${reward.Title} (${reward.Cost} points)</option>`).join('');
+
+    const grid = document.getElementById('reward-grid');
+    if (!rewards.length) {
+        grid.innerHTML = '<div class="rounded-2xl bg-white border border-slate-200 p-4 text-slate-500">No active rewards.</div>';
+        return;
+    }
+
+    grid.innerHTML = rewards.map((reward) => `
+        <article class="panel rounded-3xl bg-white border border-slate-200 p-5">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-xl font-bold">${reward.Title}</h3>
+                    <p class="text-slate-500">A fun milestone to work toward.</p>
+                </div>
+                <div class="badge-soft rounded-full px-3 py-1 font-bold">${reward.Cost} pts</div>
+            </div>
+            <button type="button" class="btn-pill mt-4 w-full rounded-2xl bg-violet-600 text-white px-4 py-3 font-semibold" onclick="prefillReward(${reward.ID})">Redeem this reward</button>
+        </article>
+    `).join('');
+}
+
+function prefillReward(rewardId) {
+    const select = document.getElementById('redeem-reward');
+    select.value = String(rewardId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function redeemSelected(event) {
+    event.preventDefault();
+    const childId = document.getElementById('redeem-child').value;
+    const rewardId = document.getElementById('redeem-reward').value;
+    if (!childId || !rewardId) return alert('Choose a child and a reward.');
+    await requestJSON(`/api/v1/rewards/${childId}/${rewardId}`, { method: 'POST' });
+    alert('Reward redeemed!');
+    await Promise.all([loadChildren(), loadRewards()]);
+}
+
+Promise.all([loadChildren(), loadRewards()]);
+</script>
+</body>
+</html>

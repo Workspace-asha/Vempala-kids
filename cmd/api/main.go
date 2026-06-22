@@ -4,8 +4,10 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	html "github.com/gofiber/template/html/v2"
 
 	"github.com/asha/vempala-kids/internal/child"
+	"github.com/asha/vempala-kids/internal/dashboard"
 	"github.com/asha/vempala-kids/internal/leaderboard"
 	"github.com/asha/vempala-kids/internal/points"
 	"github.com/asha/vempala-kids/internal/reward"
@@ -15,9 +17,10 @@ import (
 )
 
 func main() {
+	cfg := pkg.LoadConfig()
 
 	// Database
-	db, err := pkg.Connect()
+	db, err := pkg.Connect(cfg.DBPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,8 +63,21 @@ func main() {
 
 	leaderboardHandler := leaderboard.NewHandler(db)
 
-	// Fiber App
-	app := fiber.New()
+	engine := html.New("./web/templates", ".html")
+
+	app := fiber.New(fiber.Config{
+		Views: engine,
+	})
+	app.Static("/static", "./web/static")
+
+	renderPage := func(name string) fiber.Handler {
+		return func(c *fiber.Ctx) error {
+			return c.Render(name, fiber.Map{})
+		}
+	}
+
+	app.Get("/leaderboard", renderPage("leaderboard"))
+	app.Get("/rewards", renderPage("rewards"))
 
 	// Health Check
 	app.Get("/health", func(c *fiber.Ctx) error {
@@ -100,9 +116,15 @@ func main() {
 		leaderboardHandler,
 	)
 
-	log.Println("🚀 Vempala Kids started on :8080")
+	dashboardHandler := dashboard.NewHandler(db)
+
+	dashboard.RegisterRoutes(
+		app,
+		dashboardHandler,
+	)
+	log.Printf("🚀 Vempala Kids started on :%s", cfg.ServerPort)
 
 	log.Fatal(
-		app.Listen(":8080"),
+		app.Listen(":" + cfg.ServerPort),
 	)
 }

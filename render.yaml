@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: vempala-kids
+    env: docker
+    plan: starter
+    autoDeploy: true
+    disk:
+      name: vempala-kids-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DB_PATH
+        value: /var/data/vempala.db

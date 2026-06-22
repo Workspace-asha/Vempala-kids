@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vempala Kids | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="text-slate-900">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <header class="glass-card rounded-3xl p-6 md:p-8 mb-6 fade-in">
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-[0.35em] text-blue-500 font-semibold">Family rewards hub</p>
+                <h1 class="text-4xl md:text-6xl font-black mt-3 leading-tight">
+                    Vempala Kids
+                </h1>
+                <p class="mt-4 text-slate-600 max-w-2xl text-lg">
+                    Growing responsibility through rewards. Track progress, assign chores to specific kids, complete tasks, and redeem rewards in one place.
+                </p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 w-full max-w-md">
+                <div class="rounded-2xl bg-slate-900 text-white p-4">
+                    <div class="text-xs uppercase tracking-widest text-slate-300">Children</div>
+                    <div class="text-3xl font-bold mt-2" id="stat-children">{{len .Children}}</div>
+                </div>
+                <div class="rounded-2xl badge-soft p-4">
+                    <div class="text-xs uppercase tracking-widest text-slate-500">Live updates</div>
+                    <div class="text-3xl font-bold mt-2">On</div>
+                </div>
+                <div class="rounded-2xl bg-white/90 p-4 border border-slate-200">
+                    <div class="text-xs uppercase tracking-widest text-slate-500">To-do tasks</div>
+                    <div class="text-3xl font-bold mt-2" id="stat-tasks">0</div>
+                </div>
+                <div class="rounded-2xl bg-white/90 p-4 border border-slate-200">
+                    <div class="text-xs uppercase tracking-widest text-slate-500">Points loop</div>
+                    <div class="text-3xl font-bold mt-2">Ready</div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="mt-8 flex flex-wrap gap-3">
+            <a href="/" class="nav-link active px-4 py-2 rounded-full font-semibold">Dashboard</a>
+            <a href="/leaderboard" class="nav-link px-4 py-2 rounded-full font-semibold bg-white/70">Leaderboard</a>
+            <a href="/rewards" class="nav-link px-4 py-2 rounded-full font-semibold bg-white/70">Rewards</a>
+        </nav>
+    </header>
+
+    <main class="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
+        <section class="space-y-6">
+            <div class="glass-card rounded-3xl p-6 fade-in">
+                <div class="flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                        <h2 class="text-2xl font-bold">Kids at a glance</h2>
+                        <p class="text-slate-500 mt-1">Quick reward buttons and live point totals.</p>
+                    </div>
+                    <button type="button" onclick="refreshAll()" class="btn-pill inline-flex items-center gap-2 rounded-full bg-slate-900 text-white px-4 py-2 font-semibold">
+                        Refresh data
+                    </button>
+                </div>
+
+                <div id="children-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    {{range .Children}}
+                    <article class="panel rounded-3xl bg-white p-5 border border-slate-200" data-child-id="{{.ID}}" data-child-name="{{.Name}}">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <h3 class="text-2xl font-bold">{{.Name}}</h3>
+                                <p class="text-slate-500">Age {{.Age}}</p>
+                            </div>
+                            <span class="badge-soft rounded-full px-3 py-1 text-sm font-semibold text-slate-700">
+                                ⭐ <span class="child-points">{{.TotalPoints}}</span>
+                            </span>
+                        </div>
+
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <button type="button" class="btn-pill rounded-full bg-blue-600 text-white px-4 py-2 text-sm font-semibold" onclick="awardPoints({{.ID}}, 5, 'Quick boost')">+5</button>
+                            <button type="button" class="btn-pill rounded-full bg-emerald-600 text-white px-4 py-2 text-sm font-semibold" onclick="awardPoints({{.ID}}, 10, 'Well done')">+10</button>
+                            <button type="button" class="btn-pill rounded-full bg-violet-600 text-white px-4 py-2 text-sm font-semibold" onclick="awardPoints({{.ID}}, 20, 'Big achievement')">+20</button>
+                        </div>
+
+                        <div class="mt-4 text-sm text-slate-500">
+                            Tap a reward, then watch the leaderboard update automatically.
+                        </div>
+                    </article>
+                    {{end}}
+                </div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-6 fade-in">
+                <div class="flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                        <h2 class="text-2xl font-bold">To-do tasks</h2>
+                        <p class="text-slate-500 mt-1">See every task and the points it earns before assigning it to a kid.</p>
+                    </div>
+                    <span class="badge-soft rounded-full px-4 py-2 text-sm font-semibold">+ points shown</span>
+                </div>
+
+                <div id="task-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6"></div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-6 fade-in">
+                <div class="flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                        <h2 class="text-2xl font-bold">Assigned tasks</h2>
+                        <p class="text-slate-500 mt-1">Choose a child to see what they are working on right now.</p>
+                    </div>
+                    <span class="badge-soft rounded-full px-4 py-2 text-sm font-semibold">Status live</span>
+                </div>
+
+                <div id="assigned-task-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div class="rounded-2xl bg-white/80 border border-slate-200 p-4 text-slate-500">
+                        Select a child to view assigned tasks.
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-6 fade-in">
+                <div class="flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                        <h2 class="text-2xl font-bold">Live leaderboard</h2>
+                        <p class="text-slate-500 mt-1">Top scores refresh without reloading the page.</p>
+                    </div>
+                    <span class="badge-soft rounded-full px-4 py-2 text-sm font-semibold">Auto sync</span>
+                </div>
+                <div id="leaderboard-list" class="mt-5 grid gap-3"></div>
+            </div>
+        </section>
+
+        <aside class="space-y-6">
+            <section class="glass-card rounded-3xl p-6 fade-in">
+                <h2 class="text-2xl font-bold">Create a custom task</h2>
+                <p class="text-slate-500 mt-1">Add a new chore with your own title and point value.</p>
+                <form class="mt-5 space-y-3" onsubmit="submitCreateTask(event)">
+                    <input id="new-task-title" type="text" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3" placeholder="Task title">
+                    <input id="new-task-points" type="number" min="1" value="10" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3" placeholder="Points">
+                    <button class="btn-pill w-full rounded-2xl bg-blue-600 text-white px-4 py-3 font-semibold">Add custom task</button>
+                </form>
+            </section>
+
+            <section class="glass-card rounded-3xl p-6 fade-in">
+                <h2 class="text-2xl font-bold">Award points</h2>
+                <p class="text-slate-500 mt-1">Pick a child, enter points, and leave a reason.</p>
+                <form class="mt-5 space-y-3" onsubmit="submitAward(event)">
+                    <select id="award-child" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3">
+                        <option value="">Select child</option>
+                    </select>
+                    <input id="award-points" type="number" min="1" value="10" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3" placeholder="Points">
+                    <input id="award-reason" type="text" value="Great job" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3" placeholder="Reason">
+                    <button class="btn-pill w-full rounded-2xl bg-slate-900 text-white px-4 py-3 font-semibold">Award points</button>
+                </form>
+            </section>
+
+            <section class="glass-card rounded-3xl p-6 fade-in">
+                <h2 class="text-2xl font-bold">Assign a task</h2>
+                <p class="text-slate-500 mt-1">Choose a child and a task, then assign it for later completion.</p>
+                <form class="mt-5 space-y-3" onsubmit="submitTask(event)">
+                    <select id="task-child" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3">
+                        <option value="">Select child</option>
+                    </select>
+                    <select id="task-id" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3">
+                        <option value="">Select task</option>
+                    </select>
+                    <button class="btn-pill w-full rounded-2xl bg-emerald-600 text-white px-4 py-3 font-semibold">Assign task</button>
+                </form>
+            </section>
+
+            <section class="glass-card rounded-3xl p-6 fade-in">
+                <h2 class="text-2xl font-bold">Redeem a reward</h2>
+                <p class="text-slate-500 mt-1">Spend points on something special.</p>
+                <form class="mt-5 space-y-3" onsubmit="submitRedeem(event)">
+                    <select id="redeem-child" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3">
+                        <option value="">Select child</option>
+                    </select>
+                    <select id="reward-id" class="w-full rounded-2xl border-slate-200 bg-white px-4 py-3">
+                        <option value="">Select reward</option>
+                    </select>
+                    <button class="btn-pill w-full rounded-2xl bg-violet-600 text-white px-4 py-3 font-semibold">Redeem reward</button>
+                </form>
+            </section>
+        </aside>
+    </main>
+</div>
+
+<script>
+const endpoints = {
+    children: '/api/v1/children',
+    tasks: '/api/v1/tasks',
+    rewards: '/api/v1/rewards',
+    leaderboard: '/api/v1/leaderboard',
+};
+
+async function requestJSON(url, options = {}) {
+    const response = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+    });
+
+    if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Request failed');
+    }
+
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
+}
+
+function getChildSelectOptions(children) {
+    return children.map((child) => `<option value="${child.ID}">${child.Name}</option>`).join('');
+}
+
+function renderLeaderboard(children) {
+    const target = document.getElementById('leaderboard-list');
+    if (!children.length) {
+        target.innerHTML = '<div class="rounded-2xl bg-white/80 border border-slate-200 p-4 text-slate-500">No leaderboard data yet.</div>';
+        return;
+    }
+
+    target.innerHTML = children.slice(0, 5).map((child, index) => `
+        <div class="rounded-2xl bg-white border border-slate-200 p-4 flex items-center justify-between gap-4">
+            <div>
+                <div class="text-xs uppercase tracking-widest text-slate-400">#${index + 1}</div>
+                <div class="font-bold text-lg">${child.Name}</div>
+                <div class="text-sm text-slate-500">Age ${child.Age}</div>
+            </div>
+            <div class="rounded-full badge-soft px-4 py-2 font-bold text-slate-800">⭐ ${child.TotalPoints}</div>
+        </div>
+    `).join('');
+}
+
+function formatDate(value) {
+    if (!value) {
+        return 'Not completed yet';
+    }
+
+    return new Date(value).toLocaleString();
+}
+
+function syncChildCards(children) {
+    const cards = document.querySelectorAll('[data-child-id]');
+    cards.forEach((card) => {
+        const id = Number(card.dataset.childId);
+        const child = children.find((item) => item.ID === id);
+        if (!child) return;
+        const pointsNode = card.querySelector('.child-points');
+        if (pointsNode) pointsNode.textContent = child.TotalPoints;
+    });
+    const statChildren = document.getElementById('stat-children');
+    if (statChildren) statChildren.textContent = children.length;
+}
+
+async function loadChildren() {
+    const children = await requestJSON(endpoints.children);
+    const selects = ['award-child', 'task-child', 'redeem-child'];
+    selects.forEach((id) => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.innerHTML = '<option value="">Select child</option>' + getChildSelectOptions(children);
+        }
+    });
+    syncChildCards(children);
+
+    const taskChild = document.getElementById('task-child');
+    if (taskChild) {
+        taskChild.onchange = async () => {
+            await loadTasks(taskChild.value);
+            await loadAssignedTasks(taskChild.value);
+        };
+    }
+
+    if (taskChild && taskChild.value) {
+        await loadTasks(taskChild.value);
+        await loadAssignedTasks(taskChild.value);
+    }
+
+    return children;
+}
+
+async function loadTasks(childId = '') {
+    const tasks = childId
+        ? await requestJSON(`/api/v1/children/${childId}/tasks/available`)
+        : await requestJSON(endpoints.tasks);
+
+    const taskStat = document.getElementById('stat-tasks');
+    if (taskStat) {
+        taskStat.textContent = tasks.length;
+    }
+
+    const select = document.getElementById('task-id');
+    if (select) {
+        select.innerHTML = '<option value="">Select task</option>' + tasks.map((task) => `<option value="${task.ID}">${task.Title} (+${task.Points})</option>`).join('');
+    }
+
+    const list = document.getElementById('task-list');
+    if (list) {
+        if (!childId) {
+            list.innerHTML = '<div class="rounded-2xl bg-white/80 border border-slate-200 p-4 text-slate-500">Select a child to see tasks that are not already assigned.</div>';
+            return;
+        }
+
+        list.innerHTML = tasks.map((task) => `
+            <article class="panel rounded-3xl bg-white p-5 border border-slate-200">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h3 class="text-xl font-bold">${task.Title}</h3>
+                        <p class="text-slate-500 mt-1">Complete this chore to earn momentum.</p>
+                    </div>
+                    <span class="badge-soft rounded-full px-3 py-1 text-sm font-semibold text-slate-700">+${task.Points} pts</span>
+                </div>
+
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <button type="button" class="btn-pill rounded-full bg-blue-600 text-white px-4 py-2 text-sm font-semibold" onclick="assignTaskForSelectedChild(${task.ID})">Assign to selected child</button>
+                    <span class="rounded-full bg-slate-100 px-3 py-2 text-sm text-slate-600">Active today</span>
+                </div>
+            </article>
+        `).join('');
+    }
+}
+
+async function loadAssignedTasks(childId) {
+    const target = document.getElementById('assigned-task-list');
+    if (!target) {
+        return;
+    }
+
+    if (!childId) {
+        target.innerHTML = '<div class="rounded-2xl bg-white/80 border border-slate-200 p-4 text-slate-500">Select a child to view assigned tasks.</div>';
+        return;
+    }
+
+    const assignments = await requestJSON(`/api/v1/children/${childId}/tasks`);
+
+    if (!assignments.length) {
+        target.innerHTML = '<div class="rounded-2xl bg-white/80 border border-slate-200 p-4 text-slate-500">No tasks assigned yet.</div>';
+        return;
+    }
+
+    target.innerHTML = assignments.map((assignment) => `
+        <article class="panel rounded-3xl bg-white p-5 border border-slate-200">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-xl font-bold">${assignment.task_title}</h3>
+                    <p class="text-slate-500 mt-1">Assigned ${formatDate(assignment.assigned_at)}</p>
+                </div>
+                <span class="badge-soft rounded-full px-3 py-1 text-sm font-semibold text-slate-700">+${assignment.points} pts</span>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+                <span class="rounded-full px-3 py-1 text-sm font-semibold ${assignment.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                    ${assignment.status}
+                </span>
+                <span class="text-sm text-slate-500">${assignment.completed_at ? `Completed ${formatDate(assignment.completed_at)}` : 'Waiting for completion'}</span>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+                <button type="button" class="btn-pill rounded-full bg-emerald-600 text-white px-4 py-2 text-sm font-semibold" onclick="completeAssignedTask(${assignment.child_id}, ${assignment.task_id})">Mark complete</button>
+            </div>
+        </article>
+    `).join('');
+}
+
+async function loadRewards() {
+    const rewards = await requestJSON(endpoints.rewards);
+    const select = document.getElementById('reward-id');
+    if (select) {
+        select.innerHTML = '<option value="">Select reward</option>' + rewards.map((reward) => `<option value="${reward.ID}">${reward.Title} (${reward.Cost} points)</option>`).join('');
+    }
+}
+
+async function loadLeaderboard() {
+    const leaderboard = await requestJSON(endpoints.leaderboard);
+    renderLeaderboard(leaderboard);
+}
+
+async function refreshAll() {
+    try {
+        await Promise.all([loadChildren(), loadTasks(), loadRewards(), loadLeaderboard()]);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function awardPoints(childId, points, reason) {
+    try {
+        await requestJSON(`/api/v1/children/${childId}/points`, {
+            method: 'POST',
+            body: JSON.stringify({ points, reason }),
+        });
+        await loadChildren();
+        await loadLeaderboard();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function submitAward(event) {
+    event.preventDefault();
+    const childId = document.getElementById('award-child').value;
+    const points = Number(document.getElementById('award-points').value);
+    const reason = document.getElementById('award-reason').value;
+    if (!childId || !points) return alert('Choose a child and enter points.');
+    await awardPoints(childId, points, reason);
+    event.target.reset();
+}
+
+async function submitCreateTask(event) {
+    event.preventDefault();
+    const title = document.getElementById('new-task-title').value.trim();
+    const points = Number(document.getElementById('new-task-points').value);
+
+    if (!title || !points) {
+        alert('Enter a task title and points.');
+        return;
+    }
+
+    try {
+        await requestJSON('/api/v1/tasks', {
+            method: 'POST',
+            body: JSON.stringify({ title, points }),
+        });
+        event.target.reset();
+        document.getElementById('new-task-points').value = '10';
+        await refreshAll();
+        const selectedChild = document.getElementById('task-child').value;
+        if (selectedChild) {
+            await loadTasks(selectedChild);
+        }
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function submitTask(event) {
+    event.preventDefault();
+    const childId = document.getElementById('task-child').value;
+    const taskId = document.getElementById('task-id').value;
+    if (!childId || !taskId) return alert('Choose a child and a task.');
+    try {
+        await requestJSON(`/api/v1/children/${childId}/tasks/${taskId}/assign`, { method: 'POST' });
+        await refreshAll();
+        await loadTasks(childId);
+        await loadAssignedTasks(childId);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function assignTaskForSelectedChild(taskId) {
+    const childId = document.getElementById('task-child').value;
+    if (!childId) {
+        alert('Choose a child in the Assign a task panel first.');
+        return;
+    }
+
+    try {
+        await requestJSON(`/api/v1/children/${childId}/tasks/${taskId}/assign`, { method: 'POST' });
+        await refreshAll();
+        await loadTasks(childId);
+        await loadAssignedTasks(childId);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function completeAssignedTask(childId, taskId) {
+    try {
+        await requestJSON(`/api/v1/children/${childId}/tasks/${taskId}/complete`, { method: 'POST' });
+        await refreshAll();
+        await loadAssignedTasks(childId);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function submitRedeem(event) {
+    event.preventDefault();
+    const childId = document.getElementById('redeem-child').value;
+    const rewardId = document.getElementById('reward-id').value;
+    if (!childId || !rewardId) return alert('Choose a child and a reward.');
+    try {
+        await requestJSON(`/api/v1/rewards/${childId}/${rewardId}`, { method: 'POST' });
+        await refreshAll();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+refreshAll();
+</script>
+</body>
+</html>

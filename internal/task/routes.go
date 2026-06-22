@@ -10,9 +10,11 @@ func RegisterRoutes(
 	group := api.Group("/tasks")
 
 	group.Get("/", handler.GetAll)
+	group.Post("/", handler.Create)
 
-	group.Post(
-	"/:childId/tasks/:taskId",
-	handler.Complete,
-)
+	children := api.Group("/children")
+	children.Get("/:childId/tasks/available", handler.GetAvailable)
+	children.Get("/:childId/tasks", handler.GetAssignments)
+	children.Post("/:childId/tasks/:taskId/assign", handler.Assign)
+	children.Post("/:childId/tasks/:taskId/complete", handler.Complete)
 }
