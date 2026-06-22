@@ -1,1 +1,3 @@
-# Vempala-kids
+# Vempala Kids
+
+Growing Responsibility Through Rewards

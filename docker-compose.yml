@@ -1,0 +1,21 @@
+services:
+
+  postgres:
+    image: postgres:17
+
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: vempala_kids
+
+    ports:
+      - "5432:5432"
+
+  api:
+    build: .
+
+    depends_on:
+      - postgres
+
+    ports:
+      - "8080:8080"
